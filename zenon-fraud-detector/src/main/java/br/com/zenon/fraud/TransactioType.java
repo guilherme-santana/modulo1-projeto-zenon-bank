@@ -6,5 +6,13 @@ public enum TransactioType {
     CASH_OUT,
     DEBIT,
     PAYMENT,
-    TRANSFER
+    TRANSFER;
+
+    public static TransactioType fromString(String type){
+        try {
+            return TransactioType.valueOf(type.toUpperCase());
+        } catch (IllegalArgumentException|NullPointerException e) {
+            return null;
+        }
+    }
 }
