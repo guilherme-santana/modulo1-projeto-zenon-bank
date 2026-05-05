@@ -4,30 +4,25 @@ import java.util.List;
 
 public class Main {
     static void main() {
-        long startTime = System.currentTimeMillis();
-        FraudAnalyzer fraudAnalyzer = new FraudAnalyzer();
+        long startTimeLoadFile = System.currentTimeMillis();
+        TransactionListRepository transactionListRepository = new TransactionListRepository();
 
         TransactionIngestor transactionIngestor = new TransactionIngestor();
-        List<Transaction> ingest = transactionIngestor.ingest("data/PS_20174392719_1491204439457_log.csv", 50000);
+        List<Transaction> ingest = transactionIngestor.ingest("data/PS_20174392719_1491204439457_log.csv", 100000);
 
-        long endTime = System.currentTimeMillis();
-        long duration = (endTime - startTime);
+        long endTimeLoadFile = System.currentTimeMillis();
+        long durationLoadFile = (endTimeLoadFile - startTimeLoadFile);
 
-        IO.println("### Relatório de fraudes ###\n");
-        fraudAnalyzer.printQuantity("1. Quantidade de transações com fraude: ", fraudAnalyzer.transactionsIsFraud(ingest));
+        long startTimeFindTransaction = System.currentTimeMillis();
+        IO.println(transactionListRepository.findTransactionByCustomerOrigen(ingest, "C1868032458"));
 
-        IO.println("2. Fraudes com maior valor:");
-        fraudAnalyzer.fraudsGreaterAmount(ingest);
+        long endTimeFindTransaction = System.currentTimeMillis();
+        long durationFindTransaction = (endTimeFindTransaction - startTimeFindTransaction);
 
-        IO.println("3. Clientes suspeitos:");
-        fraudAnalyzer.suspiciousCustomers(ingest);
-
-        IO.println("4. Prejuízo Total:" + fraudAnalyzer.sumAmountTotalFrauds(ingest));
-
-        IO.println("5. Fraudes por tipo:");
-        fraudAnalyzer.quantityFraudByType(ingest);
-
-        IO.println("\nProcessamento concluído em: " + duration + "ms");
+        IO.println("\nProcessamento do carregamento do arquivo concluído em: " + durationLoadFile + "ms");
         IO.println("Total de registros processados com sucesso: " + ingest.size());
+
+        IO.println("\nProcessamento da busca de transações concluído em: " + durationFindTransaction + "ms");
+
     }
 }
