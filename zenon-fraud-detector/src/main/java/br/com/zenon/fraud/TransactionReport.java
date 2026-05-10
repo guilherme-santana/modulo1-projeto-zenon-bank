@@ -4,15 +4,30 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.Currency;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.stream.Stream;
 
 public class TransactionReport {
 
 
-    public void processFileEfficiently() throws IOException {
+    public void processFileEfficiently(String local) throws IOException {
         record Accumulator(long lines, long frauds, BigDecimal sum) {
         }
+        var locale = Locale.of(local);
+        NumberFormat integerFormatter = NumberFormat.getIntegerInstance(locale);
+        NumberFormat currencyInstance = DecimalFormat.getCurrencyInstance(locale);
+        currencyInstance.setCurrency(Currency.getInstance("USD"));
 
-        try (var lines = Files.lines(Path.of("data/PS_20174392719_1491204439457_log.csv"))) {
+        var resourceBundle = ResourceBundle.getBundle("report", locale);
+        String msgTotalTransactions = resourceBundle.getString("label.total.transactions");
+        String msgTotalFrauds = resourceBundle.getString("label.total.frauds");
+        String msgTotalAmount = resourceBundle.getString("label.total.amount");
+
+        try (Stream<String> lines = Files.lines(Path.of("data/PS_20174392719_1491204439457_log.csv"))) {
             Accumulator result = lines.skip(1)
                     .map(line -> line.split(",", 11))
                     .reduce(
@@ -32,9 +47,10 @@ public class TransactionReport {
                             },
                             (accumulator, accumulator2) -> null
                     );
-            System.out.println("Total Linhas: " + result.lines());
-            System.out.println("Total Fraudes: " + result.frauds());
-            System.out.println("Valor total transacionado: " + result.sum().toPlainString());
+
+            System.out.println(msgTotalTransactions.concat(integerFormatter.format(result.lines())));
+            System.out.println(msgTotalFrauds.concat(integerFormatter.format(result.frauds())));
+            System.out.println(msgTotalAmount.concat(currencyInstance.format(result.sum())));
 
         } catch (Exception e) {
             throw new RuntimeException("Error processing file: ", e);

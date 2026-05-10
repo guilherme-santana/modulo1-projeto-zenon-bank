@@ -8,7 +8,7 @@ public class ReportMain {
         TransactionReport transactionReport = new TransactionReport();
 
         long start = System.currentTimeMillis();
-        transactionReport.processFileEfficiently();
+        transactionReport.processFileEfficiently("en");
         long end = System.currentTimeMillis();
         long duration = end - start;
         IO.println("Tempo de processamento: " + duration + " ms");
