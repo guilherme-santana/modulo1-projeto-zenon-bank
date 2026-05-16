@@ -5,9 +5,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 public class TransactionSQLRepository {
+
+    public static final int JDBC_BATCH_SIZE = 1_000;
 
     public void save(Transaction transaction) {
         String sql = """
@@ -88,6 +91,60 @@ public class TransactionSQLRepository {
 
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+
+    }
+
+    public void saveAll(List<Transaction> transactions) {
+        String sql = """
+                INSERT INTO transactions
+                (step, `type`, amount, name_origin, old_balance_orgin, new_balance_origin, name_recipient, old_balance_recipient, new_balance_recipient, is_fraud, is_flagged_fraud)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?);
+                """;
+
+        try (Connection connection = ConnectionFactory.getConnection()) {
+            connection.setAutoCommit(false);
+            int count = 0;
+
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                for (Transaction transaction : transactions) {
+                    ps.setInt(1, transaction.step());
+                    ps.setString(2, transaction.type().name());
+                    ps.setBigDecimal(3, transaction.amount());
+                    ps.setString(4, transaction.origin().getName());
+                    ps.setBigDecimal(5, transaction.origin().getOldBalance());
+                    ps.setBigDecimal(6, transaction.origin().getNewBalance());
+                    ps.setString(7, transaction.destination().getName());
+                    ps.setBigDecimal(8, transaction.destination().getOldBalance());
+                    ps.setBigDecimal(9, transaction.destination().getNewBalance());
+                    ps.setInt(10, transaction.isFraud());
+                    ps.setInt(11, transaction.isFlaggedFraud());
+                    IO.println("Adicionando nova transação no batch...");
+                    ps.addBatch();
+                    count++;
+
+                    if (count % JDBC_BATCH_SIZE == 0) {
+                        IO.println("Executando batch...");
+                        ps.executeBatch();
+                        connection.commit();
+                    }
+                }
+                IO.println("Executando batch final...");
+                ps.executeBatch();
+                connection.commit();
+                connection.setAutoCommit(true);
+
+            } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException ex) {
+                    throw new RuntimeException("Erro ao executar rollback ", e);
+                }
+                throw new RuntimeException("Erro ao salvar transação ", e);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro na conexão com DB ", e);
         }
 
     }
